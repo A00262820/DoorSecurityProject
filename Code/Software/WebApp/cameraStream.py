@@ -1,0 +1,37 @@
+# camera_stream_client.py (Sender now acts as Client)
+import cv2
+import asyncio
+import websockets
+import base64
+import time
+
+async def send_camera_stream():
+    uri = "ws://localhost:8765"
+    cap = cv2.VideoCapture(0)  # Open the camera only once
+    if not cap.isOpened():
+        print("Error: Could not open camera.")
+        return
+
+    try:
+        async with websockets.connect(uri) as websocket:
+            print("Connected to server.")
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if not ret:
+                    break  # Exit loop if no frame is read
+
+                _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                frame_base64 = base64.b64encode(buffer).decode('utf-8')
+                await websocket.send(frame_base64)
+                await asyncio.sleep(0.03)
+
+            print("Camera stream ended.")
+    except websockets.exceptions.ConnectionClosedOK:
+        print("Server closed connection.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+    finally:
+        cap.release()  # Release the camera in the finally block
+
+if __name__ == "__main__":
+    asyncio.run(send_camera_stream())
