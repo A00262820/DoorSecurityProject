@@ -1,38 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Video Stream</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <title>Camera Stream</title>
+    <style>
+        #videoStream {
+            width: 640px;
+            height: 480px;
+        }
+    </style>
 </head>
 <body>
-    <video id="video" width="640" height="480" autoplay></video>
+    <h1>Camera Stream</h1>
+    <img id="videoStream" src="" alt="Camera Stream">
 
     <script>
-        const video = document.getElementById('video');
-        const socket = io.connect('http://' + document.domain + ':' + location.port);
-
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                video.srcObject = stream;
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-
-                function sendFrame() {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const imageData = canvas.toDataURL('image/jpeg', 0.8); // Adjust quality as needed
-                    socket.emit('video_stream', imageData);
-                    requestAnimationFrame(sendFrame);
-                }
-
-                sendFrame();
-
-            })
-            .catch(error => {
-                console.error('Error accessing webcam:', error);
-            });
-
+        function updateStream() {
+            fetch('/stream')
+                .then(response => response.text())
+                .then(data => {
+                    if (data) {
+                        document.getElementById('videoStream').src = 'data:image/jpeg;base64,' + data;
+                    }
+                    setTimeout(updateStream, 30); // Adjust refresh rate
+                });
+        }
+        updateStream();
     </script>
 </body>
 </html>
