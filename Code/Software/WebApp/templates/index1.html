@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Stream</title>
+    <style>
+        #videoStream {
+            width: 640px;
+            height: 480px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Camera Stream</h1>
+    <img id="videoStream" src="" alt="Camera Stream">
+
+    <script>
+        function updateStream() {
+            fetch('/stream')
+                .then(response => response.text())
+                .then(data => {
+                    if (data) {
+                        document.getElementById('videoStream').src = 'data:image/jpeg;base64,' + data;
+                    }
+                    setTimeout(updateStream, 30); // Adjust refresh rate
+                });
+        }
+        updateStream();
+    </script>
+</body>
+</html>

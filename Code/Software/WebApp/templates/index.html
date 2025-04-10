@@ -1,11 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Camera Stream</title>
+    <title>Camera Stream - Register Faces</title>
     <style>
         #videoStream {
             width: 640px;
             height: 480px;
+        }
+        #registrationForm {
+            display: none; /* Initially hidden */
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #previewImage {
+            max-width: 200px;
+            max-height: 150px;
+            margin-top: 10px;
+            border: 1px solid #eee;
         }
     </style>
 </head>
@@ -13,17 +26,98 @@
     <h1>Camera Stream</h1>
     <img id="videoStream" src="" alt="Camera Stream">
 
+    <button id="registerButton">Register New Face</button>
+
+    <div id="registrationForm">
+        <h2>Register New Face</h2>
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name"><br><br>
+        <button id="takePhotoButton">Take Photo</button>
+        <img id="previewImage" src="" alt="Preview">
+        <button id="saveButton" style="display: none;">Save Face</button>
+    </div>
+
     <script>
+        const videoStreamElement = document.getElementById('videoStream');
+        const registerButton = document.getElementById('registerButton');
+        const registrationForm = document.getElementById('registrationForm');
+        const nameInput = document.getElementById('name');
+        const takePhotoButton = document.getElementById('takePhotoButton');
+        const previewImage = document.getElementById('previewImage');
+        const saveButton = document.getElementById('saveButton');
+
+        let currentFrameBase64 = null;
+
         function updateStream() {
-            fetch('/stream')
+            fetch('/stream') // Assuming your server provides a continuous stream at this endpoint
                 .then(response => response.text())
                 .then(data => {
                     if (data) {
-                        document.getElementById('videoStream').src = 'data:image/jpeg;base64,' + data;
+                        videoStreamElement.src = 'data:image/jpeg;base64,' + data;
                     }
-                    setTimeout(updateStream, 30); // Adjust refresh rate
+                    setTimeout(updateStream, 30); // Adjust refresh rate as needed
                 });
         }
+
+        function showRegistrationForm() {
+            registerButton.style.display = 'none';
+            registrationForm.style.display = 'block';
+            previewImage.style.display = 'none';
+            saveButton.style.display = 'none';
+            nameInput.value = ''; // Clear previous name
+            currentFrameBase64 = null;
+        }
+
+        function takePhoto() {
+            // Get the current frame from the video stream (which is being updated by the img src)
+            currentFrameBase64 = videoStreamElement.src.split(',')[1]; // Extract base64 data
+            previewImage.src = 'data:image/jpeg;base64,' + currentFrameBase64;
+            previewImage.style.display = 'block';
+            saveButton.style.display = 'inline-block';
+        }
+
+        function saveFace() {
+            const name = nameInput.value.trim();
+            if (!name || !currentFrameBase64) {
+                alert('Please enter a name and take a photo first.');
+                return;
+            }
+
+            fetch('/register_face', { // Assuming you have a server endpoint for registration
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    image_data: currentFrameBase64
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Face registered successfully!');
+                    showRegisterButton();
+                } else {
+                    alert('Failed to register face: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error registering face:', error);
+                alert('An error occurred while registering the face.');
+            });
+        }
+
+        function showRegisterButton() {
+            registrationForm.style.display = 'none';
+            registerButton.style.display = 'block';
+        }
+
+        registerButton.addEventListener('click', showRegistrationForm);
+        takePhotoButton.addEventListener('click', takePhoto);
+        saveButton.addEventListener('click', saveFace);
+
+        // Start the video stream when the page loads
         updateStream();
     </script>
 </body>
