@@ -9,9 +9,9 @@ const char* ssid = "YOUR_WIFI_SSID";
 const char* password = "YOUR_WIFI_PASSWORD";
 
 // WebSocket server details
-const char* wsServer = "YOUR_WEBSOCKET_SERVER_IP"; // Replace with your server IP or hostname
-const int wsPort = YOUR_WEBSOCKET_SERVER_PORT;     // Replace with your server port
-const char* wsPath = "/ws";                       // Replace with your WebSocket path if needed
+const char* wsServer = "192.168.4.27"; // Replace with your server IP or hostname
+const int wsPort = 875;     // Replace with your server port
+const char* wsPath = "";                       // Replace with your WebSocket path if needed
 
 // Relay pin (adjust to your setup)
 const int relayPin = 2;
@@ -180,9 +180,10 @@ void sendFrameWebSocket() {
   esp_camera_fb_return(fb);
 }
 
+int capacity =256;
 void processRecognitionResponse(const String& response) {
   // Assuming the server sends a JSON response like {"face_recognized": true/false}
-  StaticJsonDocument doc;
+  StaticJsonDocument<512> doc;
   DeserializationError error = deserializeJson(doc, response);
 
   if (error) {

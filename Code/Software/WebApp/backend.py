@@ -87,8 +87,9 @@ async def handle_client(websocket):
     executor = concurrent.futures.ThreadPoolExecutor() # Create a thread pool
     try:
         async for message in websocket:
-            frame_bytes = base64.b64decode(message)
-            frame_array = np.frombuffer(frame_bytes, np.uint8)
+            # frame_bytes = base64.b64decode(message)
+            # frame_array = np.frombuffer(frame_bytes, np.uint8)
+            frame_array = np.frombuffer(message, np.uint8)
             frame_global = cv2.imdecode(frame_array, cv2.IMREAD_COLOR)
 
             recognized_face = False
@@ -193,7 +194,7 @@ def register_face():
 
 def run_websocket():
     async def main():
-        async with websockets.serve(handle_client, "localhost", 8765):
+        async with websockets.serve(handle_client, "0.0.0.0", 8765):
             print("WebSocket server started. Waiting for connections...")
             await asyncio.Future()
 
