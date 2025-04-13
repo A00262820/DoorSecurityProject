@@ -78,35 +78,41 @@ def process_frame(frame_global):
             pass
     return frame_global, recognized_face
     
-
-
 async def handle_client(websocket):
     global frame_global, connected_clients
     connected_clients.add(websocket)
     print(f"Client connected: {websocket.remote_address}")
-    executor = concurrent.futures.ThreadPoolExecutor() # Create a thread pool
+    executor = concurrent.futures.ThreadPoolExecutor()
+    last_recognition_time = 0  # Timestamp of the last recognition
+
     try:
         async for message in websocket:
             # frame_bytes = base64.b64decode(message)
-            # frame_array = np.frombuffer(frame_bytes, np.uint8)
+            # frame_array = np.frombuffer(frame_bytes, np.uint8)            
             frame_array = np.frombuffer(message, np.uint8)
             frame_global = cv2.imdecode(frame_array, cv2.IMREAD_COLOR)
 
             recognized_face = False
-
-            # Await the result of asyncio.to_thread
             result = await asyncio.to_thread(process_frame, frame_global.copy())
             frame_global, recognized_face = result
 
-            # Send WebSocket message to turn on relay if a face is recognized
-            if recognized_face:
-                try:
-                    await websocket.send("face_recognized")
-                    print(f"Sent 'face_recognized' to {websocket.remote_address}")
-                except websockets.exceptions.ConnectionClosedError:
-                    print(f"Connection closed while trying to send 'face_recognized' to {websocket.remote_address}")
+            current_time = asyncio.get_event_loop().time()
 
-            await asyncio.sleep(0.01) # Small delay to yield to the event loop
+            if recognized_face:
+                if  current_time - last_recognition_time >= 30:
+                    try:
+                        await websocket.send("face_recognized")
+                        print(f"Sent 'face_recognized' to {websocket.remote_address}")
+                        last_recognition_time = current_time
+                    except websockets.exceptions.ConnectionClosedError:
+                        print(
+                            f"Connection closed while trying to send 'face_recognized' to {websocket.remote_address}"
+                        )
+
+            elif  current_time - last_recognition_time >= 30:
+                 last_recognition_time = 0
+
+            await asyncio.sleep(0.01)
 
     except websockets.exceptions.ConnectionClosedOK:
         print(f"Client disconnected: {websocket.remote_address}")
@@ -114,7 +120,44 @@ async def handle_client(websocket):
         print(f"Error handling client {websocket.remote_address}: {e}")
     finally:
         connected_clients.remove(websocket)
-        executor.shutdown() # Clean up the thread pool
+        executor.shutdown()
+
+
+# async def handle_client(websocket):
+#     global frame_global, connected_clients
+#     connected_clients.add(websocket)
+#     print(f"Client connected: {websocket.remote_address}")
+#     executor = concurrent.futures.ThreadPoolExecutor() # Create a thread pool
+#     try:
+#         async for message in websocket:
+#             # frame_bytes = base64.b64decode(message)
+#             # frame_array = np.frombuffer(frame_bytes, np.uint8)
+#             frame_array = np.frombuffer(message, np.uint8)
+#             frame_global = cv2.imdecode(frame_array, cv2.IMREAD_COLOR)
+
+#             recognized_face = False
+
+#             # Await the result of asyncio.to_thread
+#             result = await asyncio.to_thread(process_frame, frame_global.copy())
+#             frame_global, recognized_face = result
+
+#             # Send WebSocket message to turn on relay if a face is recognized
+#             if recognized_face:
+#                 try:
+#                     await websocket.send("face_recognized")
+#                     print(f"Sent 'face_recognized' to {websocket.remote_address}")
+#                 except websockets.exceptions.ConnectionClosedError:
+#                     print(f"Connection closed while trying to send 'face_recognized' to {websocket.remote_address}")
+
+#             await asyncio.sleep(0.01) # Small delay to yield to the event loop
+
+#     except websockets.exceptions.ConnectionClosedOK:
+#         print(f"Client disconnected: {websocket.remote_address}")
+#     except Exception as e:
+#         print(f"Error handling client {websocket.remote_address}: {e}")
+#     finally:
+#         connected_clients.remove(websocket)
+#         executor.shutdown() # Clean up the thread pool
 
 @app.route('/')
 def index():
