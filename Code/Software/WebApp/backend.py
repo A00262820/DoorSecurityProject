@@ -123,42 +123,6 @@ async def handle_client(websocket):
         executor.shutdown()
 
 
-# async def handle_client(websocket):
-#     global frame_global, connected_clients
-#     connected_clients.add(websocket)
-#     print(f"Client connected: {websocket.remote_address}")
-#     executor = concurrent.futures.ThreadPoolExecutor() # Create a thread pool
-#     try:
-#         async for message in websocket:
-#             # frame_bytes = base64.b64decode(message)
-#             # frame_array = np.frombuffer(frame_bytes, np.uint8)
-#             frame_array = np.frombuffer(message, np.uint8)
-#             frame_global = cv2.imdecode(frame_array, cv2.IMREAD_COLOR)
-
-#             recognized_face = False
-
-#             # Await the result of asyncio.to_thread
-#             result = await asyncio.to_thread(process_frame, frame_global.copy())
-#             frame_global, recognized_face = result
-
-#             # Send WebSocket message to turn on relay if a face is recognized
-#             if recognized_face:
-#                 try:
-#                     await websocket.send("face_recognized")
-#                     print(f"Sent 'face_recognized' to {websocket.remote_address}")
-#                 except websockets.exceptions.ConnectionClosedError:
-#                     print(f"Connection closed while trying to send 'face_recognized' to {websocket.remote_address}")
-
-#             await asyncio.sleep(0.01) # Small delay to yield to the event loop
-
-#     except websockets.exceptions.ConnectionClosedOK:
-#         print(f"Client disconnected: {websocket.remote_address}")
-#     except Exception as e:
-#         print(f"Error handling client {websocket.remote_address}: {e}")
-#     finally:
-#         connected_clients.remove(websocket)
-#         executor.shutdown() # Clean up the thread pool
-
 @app.route('/')
 def index():
     return render_template('index.html')

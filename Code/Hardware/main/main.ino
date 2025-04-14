@@ -5,12 +5,12 @@
 #include <WebSocketsClient.h>
 
 // WiFi credentials
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+const char* ssid = "4145-IOT";
+const char* password = "passim-sough-regional";
 
 // WebSocket server details
-const char* wsServer = "192.168.4.27"; // Replace with your server IP or hostname
-const int wsPort = 875;     // Replace with your server port
+const char* wsServer = "192.168.55.216"; // Replace with your server IP or hostname
+const int wsPort = 8765;     // Replace with your server port
 const char* wsPath = "";                       // Replace with your WebSocket path if needed
 
 // Relay pin (adjust to your setup)
@@ -74,9 +74,28 @@ void loop() {
     sendFrameWebSocket();
     lastTime = currentTime;
   }
-
   // Control the lock based on face recognition status
-  controlLock(faceRecognized);
+  static bool lockOpen = false;       // Track if the lock is currently open
+  static unsigned long lockOpenTime = 0; // Time when the lock was opened
+
+  if (faceRecognized) {
+    if (!lockOpen) {
+      // Open the lock and record the time
+      controlLock(true);  // Open the lock
+      lockOpen = true;
+      lockOpenTime = currentTime;
+      Serial.println("Face recognized! Opening lock for 30 seconds."); //Added serial print
+    }
+  } else {
+    if (lockOpen && (currentTime - lockOpenTime >= 30000)) {
+      // 30 seconds have passed, close the lock
+      controlLock(false); // Close the lock
+      lockOpen = false;
+      Serial.println("30 seconds over! Closing lock.");//Added serial print
+    }
+  }
+  // // Control the lock based on face recognition status
+  // controlLock(faceRecognized);
 
   delay(10); // Small delay to prevent watchdog issues
 }
